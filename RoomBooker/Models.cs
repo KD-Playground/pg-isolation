@@ -9,6 +9,14 @@ public record Invoice
         get => _id.ToString().ToUpperInvariant();
         init => _id = Guid.Parse(value);
     }
+    
+    private Guid _userId;
+
+    public string UserId
+    {
+        get => _userId.ToString().ToUpperInvariant();
+        init => _userId = Guid.Parse(value);
+    }
 
     public decimal Amount { get; init; }
 }
@@ -83,4 +91,27 @@ public record Booking
         get => _end.ToString();
         init => _end = TimeSpan.Parse(value);
     }
+}
+
+public record Article
+{
+    
+    private Guid _id;
+
+    public string Id
+    {
+        get => _id.ToString().ToUpperInvariant();
+        init => _id = Guid.Parse(value);
+    }
+    private Guid? _userId;
+
+    public string? UserId
+    {
+        get => _userId?.ToString().ToUpperInvariant();
+        init => _userId = value is null ? null : Guid.Parse(value);
+    }
+    
+    public decimal Price { get; init; }
+    public string Name { get; init; }
+
 }

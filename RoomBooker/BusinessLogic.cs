@@ -6,7 +6,6 @@ namespace RoomBooker;
 
 public static class BusinessLogic
 {
-    
     public static async Task CreateUserCommand(User user, SqliteConnection connexion)
     {
         var sql =
@@ -19,6 +18,18 @@ public static class BusinessLogic
         await connexion.ExecuteAsync(sql, completedUser);
     }
     
+    public static async Task CreateArticleCommand(Article article, SqliteConnection connexion)
+    {
+        var sql =
+            """
+                INSERT INTO Articles (Id, Price, Name) VALUES (@Id, @Price, @Name);
+            """;
+
+        var compltedArticle = article with {Id = Guid.NewGuid().ToString()};
+
+        await connexion.ExecuteAsync(sql, compltedArticle);
+    }
+
     public static async Task CreateRoomCommand(Room room, DbConnection connexion)
     {
         var sql =
@@ -30,8 +41,9 @@ public static class BusinessLogic
 
         await connexion.ExecuteAsync(sql, completedRoom);
     }
-    
-    public static async Task<IResult> BookRoomCommand(DbConnection connexion, Booking booking, DbTransaction transaction)
+
+    public static async Task<IResult> BookRoomCommand(DbConnection connexion, Booking booking,
+        DbTransaction transaction, TimeSpan delay)
     {
         try
         {
@@ -87,7 +99,7 @@ public static class BusinessLogic
 
             await connexion.ExecuteAsync(bookRoomForUser, booking, transaction);
 
-            await Task.Delay(TimeSpan.FromSeconds(30));
+            await Task.Delay(delay);
 
             var invoiceUser =
                 """
@@ -113,7 +125,71 @@ public static class BusinessLogic
             throw;
         }
     }
-    
+
+    public static async Task<IResult> SellArticleToUser(Article article, DbConnection connexion,
+        DbTransaction transaction, TimeSpan delay)
+    {
+        try
+        {
+            var getArticle =
+                """
+                    SELECT * FROM Articles Where Id = @Id LIMIT 1;
+                """;
+            var actualArticle = await connexion.QueryFirstOrDefaultAsync<Article>(getArticle, new {Id = article.Id},
+                transaction);
+
+            if (actualArticle is null) throw new Exception("Article not found");
+            if (actualArticle.UserId is not null) throw new Exception("Article is Sold");
+
+            var getUser =
+                """
+                   SELECT * FROM Users Where Id = @Id LIMIT 1;
+                """;
+
+            var user = await connexion.QueryFirstOrDefaultAsync<User>(getUser, new {Id = article.UserId},
+                transaction);
+
+            if (user is null) throw new Exception("User not found");
+
+
+            var invoiceUser =
+                """
+                    INSERT INTO Invoices 
+                    (Id, UserId, Amount) 
+                    VALUES (@Id, @UserId, @Price);
+                """;
+
+            await connexion.ExecuteAsync(invoiceUser, new
+            {
+                Id = Guid.NewGuid().ToString(),
+                UserId = user.Id,
+                actualArticle.Price
+            }, transaction);
+
+            if(delay > TimeSpan.Zero)
+                await Task.Delay(delay);
+
+            var sellArticle =
+                """
+                    UPDATE Articles 
+                    Set UserId = @UserId
+                    Where Id = @Id;
+                """;
+
+            await connexion.ExecuteAsync(sellArticle, new {actualArticle.Id, UserId = user.Id }, transaction);
+
+            await transaction.CommitAsync();
+
+
+            return Results.Ok();
+        }
+        catch
+        {
+            await transaction.RollbackAsync();
+            throw;
+        }
+    }
+
     public static async Task<IResult> GetInventoryQuery(DbConnection connexion, DbTransaction transaction)
     {
         var getBookigns =
@@ -139,5 +215,4 @@ public static class BusinessLogic
             Bookings = bookings
         });
     }
-    
 }

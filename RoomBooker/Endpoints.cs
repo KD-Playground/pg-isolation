@@ -58,6 +58,15 @@ public static class Endpoints
                     FOREIGN KEY (RoomId) REFERENCES Rooms (Id),
                     FOREIGN KEY (UserId) REFERENCES Users (Id)
                 );
+            CREATE TABLE IF NOT EXISTS 
+                "Articles" (
+                    Id TEXT NOT NULL,
+                    Name TEXT NOT NULL,
+                    Price DECIMAL(20,0) NOT NULL DEFAULT 200,
+                    UserId TEXT,
+                    FOREIGN KEY (UserId) REFERENCES Users (Id)
+                );
+               
             DROP INDEX IF EXISTS idx_bookings_roomId_userId;
             CREATE INDEX IF NOT EXISTS idx_bookings_roomId_userId ON Bookings (RoomId, UserId);
             """;
@@ -83,6 +92,15 @@ public static class Endpoints
 
         await BusinessLogic.CreateRoomCommand(room, connexion);
     };
+    
+    public static readonly Func<Article, ILogger<Program>, Task> CreateArticle = async (article, logger) =>
+    {
+        logger.LogInformation("Creating Article...");
+        await using var connexion = new SqliteConnection(InMemoryConfiguration.SqlLiteConnectionString);
+        await connexion.OpenAsync();
+
+        await BusinessLogic.CreateArticleCommand(article, connexion);
+    };
 
 
     public static readonly Func<Booking, ILogger<Program>, Task<IResult>> BookRoom =
@@ -97,7 +115,52 @@ public static class Endpoints
             await connexion.ExecuteAsync(sql);
 
             await using var transaction = connexion.BeginTransaction(IsolationLevel.ReadUncommitted);
-            return await BusinessLogic.BookRoomCommand(connexion, booking, transaction);
+            return await BusinessLogic.BookRoomCommand(connexion, booking, transaction, TimeSpan.FromSeconds(30));
+        };
+    
+    public static readonly Func<Booking, ILogger<Program>, Task<IResult>> BookRoomFast =
+        async (booking, logger) =>
+        {
+            logger.LogInformation("Booking Room...");
+            await using var connexion = new SqliteConnection(InMemoryConfiguration.SqlLiteConnectionString);
+            await connexion.OpenAsync();
+
+            var sql = "PRAGMA read_uncommitted = ON;";
+
+            await connexion.ExecuteAsync(sql);
+
+            await using var transaction = connexion.BeginTransaction(IsolationLevel.ReadUncommitted);
+            return await BusinessLogic.BookRoomCommand(connexion, booking, transaction, TimeSpan.Zero);
+        };
+    
+    public static readonly Func<Article, ILogger<Program>, Task<IResult>> SellArticle =
+        async (article, logger) =>
+        {
+            logger.LogInformation("Selling Article...");
+            await using var connexion = new SqliteConnection(InMemoryConfiguration.SqlLiteConnectionString);
+            await connexion.OpenAsync();
+
+            var sql = "PRAGMA read_uncommitted = ON;";
+
+            await connexion.ExecuteAsync(sql);
+
+            await using var transaction = connexion.BeginTransaction(IsolationLevel.ReadUncommitted);
+            return await BusinessLogic.SellArticleToUser(article, connexion, transaction, TimeSpan.FromSeconds(20));
+        };
+    
+    public static readonly Func<Article, ILogger<Program>, Task<IResult>> SellFastArticle =
+        async (article, logger) =>
+        {
+            logger.LogInformation("Selling Article Fast...");
+            await using var connexion = new SqliteConnection(InMemoryConfiguration.SqlLiteConnectionString);
+            await connexion.OpenAsync();
+
+            var sql = "PRAGMA read_uncommitted = ON;";
+
+            await connexion.ExecuteAsync(sql);
+
+            await using var transaction = connexion.BeginTransaction(IsolationLevel.ReadUncommitted);
+            return await BusinessLogic.SellArticleToUser(article, connexion, transaction, TimeSpan.Zero);
         };
 
 

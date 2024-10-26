@@ -37,8 +37,24 @@ app.MapPost("/v1/rooms", Endpoints.CreateRoom)
     .WithName("Create Room")
     .WithOpenApi();
 
+app.MapPost("/v1/articles", Endpoints.CreateArticle)
+    .WithName("Create Article")
+    .WithOpenApi();
+
 app.MapPost("/v1/rooms/bookings", Endpoints.BookRoom)
     .WithName("Book Room")
+    .WithOpenApi();
+
+app.MapPost("/v1/rooms/fast-bookings", Endpoints.BookRoomFast)
+    .WithName("Fast Book Room")
+    .WithOpenApi();
+
+app.MapPost("/v1/articles/sell", Endpoints.SellArticle)
+    .WithName("Sell Article")
+    .WithOpenApi();
+
+app.MapPost("/v1/articles/fast-sell", Endpoints.SellFastArticle)
+    .WithName("Sell Article Fast")
     .WithOpenApi();
 
 app.MapPost("/v1/inventory", Endpoints.GetInventory)
@@ -46,24 +62,23 @@ app.MapPost("/v1/inventory", Endpoints.GetInventory)
     .WithOpenApi();
 
 #endregion
-
-#region v2 endpoints isolation read_comitted
-app.MapPost("/v1/users", Endpoints.CreateUser)
-    .WithName("Create User")
-    .WithOpenApi();
-
-app.MapPost("/v1/rooms", Endpoints.CreateRoom)
-    .WithName("Create Room")
-    .WithOpenApi();
-
-app.MapPost("/v1/rooms/bookings", Endpoints.BookRoom)
-    .WithName("Book Room")
-    .WithOpenApi();
-
-app.MapPost("/v1/inventory", Endpoints.GetInventory)
-    .WithName("Get Inventory")
-    .WithOpenApi();
-#endregion
+// #region v2 endpoints isolation read_comitted
+// app.MapPost("/v1/users", Endpoints.CreateUser)
+//     .WithName("Create User")
+//     .WithOpenApi();
+//
+// app.MapPost("/v1/rooms", Endpoints.CreateRoom)
+//     .WithName("Create Room")
+//     .WithOpenApi();
+//
+// app.MapPost("/v1/rooms/bookings", Endpoints.BookRoom)
+//     .WithName("Book Room")
+//     .WithOpenApi();
+//
+// app.MapPost("/v1/inventory", Endpoints.GetInventory)
+//     .WithName("Get Inventory")
+//     .WithOpenApi();
+// #endregion
 
 
 app.Run();
