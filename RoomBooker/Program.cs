@@ -27,6 +27,7 @@ app.MapGet("/v1/migrate", Endpoints.SqlLiteMigrate)
     .WithName("SQL lite Migrate")
     .WithOpenApi();
 
+#region v1 endpoints isolation read_uncomitted 
 
 app.MapPost("/v1/users", Endpoints.CreateUser)
     .WithName("Create User")
@@ -39,6 +40,31 @@ app.MapPost("/v1/rooms", Endpoints.CreateRoom)
 app.MapPost("/v1/rooms/bookings", Endpoints.BookRoom)
     .WithName("Book Room")
     .WithOpenApi();
+
+app.MapPost("/v1/inventory", Endpoints.GetInventory)
+    .WithName("Get Inventory")
+    .WithOpenApi();
+
+#endregion
+
+#region v2 endpoints isolation read_comitted
+app.MapPost("/v1/users", Endpoints.CreateUser)
+    .WithName("Create User")
+    .WithOpenApi();
+
+app.MapPost("/v1/rooms", Endpoints.CreateRoom)
+    .WithName("Create Room")
+    .WithOpenApi();
+
+app.MapPost("/v1/rooms/bookings", Endpoints.BookRoom)
+    .WithName("Book Room")
+    .WithOpenApi();
+
+app.MapPost("/v1/inventory", Endpoints.GetInventory)
+    .WithName("Get Inventory")
+    .WithOpenApi();
+#endregion
+
 
 app.Run();
 

@@ -35,13 +35,17 @@ public static class Endpoints
             CREATE TABLE IF NOT EXISTS 
                 "Invoices" (
                     Id TEXT NOT NULL,
+                    UserId TEXT NOT NULL,
                     Amount DECIMAL(20,0) NOT NULL,
-                    PRIMARY KEY (Id)
+                    PRIMARY KEY (Id),
+                    FOREIGN KEY (UserId) REFERENCES Users (Id)
                 );                       
             CREATE TABLE IF NOT EXISTS 
                 "Rooms" (
                     Id Text NOT NULL,
-                    Name Text NOT NULL
+                    Name Text NOT NULL,
+                    Price DECIMAL(20,0) NOT NULL DEFAULT 200,
+                    PRIMARY KEY (Id)
                 );
             CREATE TABLE IF NOT EXISTS 
                 "Bookings" (
@@ -50,10 +54,12 @@ public static class Endpoints
                     Date Text NOT NULL,
                     START Text NOT NULL,
                     END Test NOT NULL,
-                    FOREIGN KEY (RoomId) REFERENCES Rooms (Id)
+                    Price DECIMAL(20,0) NOT NULL DEFAULT 200,
+                    FOREIGN KEY (RoomId) REFERENCES Rooms (Id),
                     FOREIGN KEY (UserId) REFERENCES Users (Id)
                 );
-            CREATE UNIQUE INDEX idx_bookings_roomId_userId ON Bookings (RoomId, UserId);
+            DROP INDEX IF EXISTS idx_bookings_roomId_userId;
+            CREATE INDEX IF NOT EXISTS idx_bookings_roomId_userId ON Bookings (RoomId, UserId);
             """;
 
         await connexion.ExecuteAsync(sql);
@@ -65,76 +71,48 @@ public static class Endpoints
         await using var connexion = new SqliteConnection(InMemoryConfiguration.SqlLiteConnectionString);
         await connexion.OpenAsync();
 
-        var sql =
-            """
-                INSERT INTO Users (Id, FullName) VALUES (@Id, @FullName);
-            """;
-
-        var completedUser = user with {Id = Guid.NewGuid()};
-
-        await connexion.ExecuteAsync(sql, completedUser);
+        await BusinessLogic.CreateUserCommand(user, connexion);
     };
-    
+
+
     public static readonly Func<Room, ILogger<Program>, Task> CreateRoom = async (room, logger) =>
     {
         logger.LogInformation("Creating Room...");
         await using var connexion = new SqliteConnection(InMemoryConfiguration.SqlLiteConnectionString);
         await connexion.OpenAsync();
 
-        var sql =
-            """
-                INSERT INTO Rooms (Id, Name) VALUES (@Id, @Name);
-            """;
-
-        var completedRoom = room with {Id = Guid.NewGuid()};
-
-        await connexion.ExecuteAsync(sql, completedRoom);
+        await BusinessLogic.CreateRoomCommand(room, connexion);
     };
-    
-    public static readonly Func<Booking, ILogger<Program>, Task> BookRoom = async (booking, logger) =>
+
+
+    public static readonly Func<Booking, ILogger<Program>, Task<IResult>> BookRoom =
+        async (booking, logger) =>
+        {
+            logger.LogInformation("Booking Room...");
+            await using var connexion = new SqliteConnection(InMemoryConfiguration.SqlLiteConnectionString);
+            await connexion.OpenAsync();
+
+            var sql = "PRAGMA read_uncommitted = ON;";
+
+            await connexion.ExecuteAsync(sql);
+
+            await using var transaction = connexion.BeginTransaction(IsolationLevel.ReadUncommitted);
+            return await BusinessLogic.BookRoomCommand(connexion, booking, transaction);
+        };
+
+
+    public static readonly Func<ILogger<Program>, Task<IResult>> GetInventory = async (logger) =>
     {
-        logger.LogInformation("Booking Room...");
+        logger.LogInformation("Getting Inventory...");
         await using var connexion = new SqliteConnection(InMemoryConfiguration.SqlLiteConnectionString);
         await connexion.OpenAsync();
-        
-        // TODO - book the room
-        // calculator process checks that room and invoice total is not aligned
-        // create an invoice
 
-        connexion.BeginTransaction(IsolationLevel.ReadUncommitted);
+        var sql = "PRAGMA read_uncommitted = ON;";
 
-        var sql =
-            """
-                INSERT INTO Bookings (RoomId, UserId, Date, Start, End) VALUES (@RoomId, @UserId, @Date, @Start, @End);  
-            """;
+        await connexion.ExecuteAsync(sql);
 
-        await connexion.ExecuteAsync(sql, booking);
+        await using var transaction = connexion.BeginTransaction(IsolationLevel.ReadUncommitted);
+
+        return await BusinessLogic.GetInventoryQuery(connexion, transaction);
     };
-}
-
-public record Invoice
-{
-    public Guid Id { get; init; }
-    public decimal Amount { get; init; }
-}
-
-public record User
-{
-    public Guid Id { get; init; }
-    public string FullName { get; init; }
-}
-
-public record Room
-{
-    public Guid Id { get; init; }
-    public string Name { get; init; }
-}
-
-public record Booking
-{
-    public Guid UserId { get; init; }
-    public Guid RoomId { get; init; }
-    public DateOnly Date { get; init; }
-    public TimeSpan Start { get; init; }
-    public TimeSpan End { get; init; }
 }
