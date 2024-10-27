@@ -176,6 +176,6 @@ public static class Endpoints
 
         await using var transaction = connexion.BeginTransaction(IsolationLevel.ReadUncommitted);
 
-        return await BusinessLogic.GetInventoryQuery(connexion, transaction);
+        return await BusinessLogic.GetInventoryQuery(connexion, transaction, logger);
     };
 }

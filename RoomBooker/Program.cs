@@ -57,7 +57,7 @@ app.MapPost("/v1/articles/fast-sell", Endpoints.SellFastArticle)
     .WithName("Sell Article Fast")
     .WithOpenApi();
 
-app.MapPost("/v1/inventory", Endpoints.GetInventory)
+app.MapGet("/v1/inventory", Endpoints.GetInventory)
     .WithName("Get Inventory")
     .WithOpenApi();
 

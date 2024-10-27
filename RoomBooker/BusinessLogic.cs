@@ -17,7 +17,7 @@ public static class BusinessLogic
 
         await connexion.ExecuteAsync(sql, completedUser);
     }
-    
+
     public static async Task CreateArticleCommand(Article article, SqliteConnection connexion)
     {
         var sql =
@@ -66,27 +66,26 @@ public static class BusinessLogic
 
             if (user is null) throw new Exception("User not found");
 
-            var getOverlappingBooking =
-                """
-                    SELECT * FROM Bookings 
-                    WHERE UserId = @UserId 
-                    AND RoomId = @RoomId
-                    AND Date = @Date
-                    AND ((Start <= @Start AND End >= @End) 
-                            OR (Start >= @Start AND End <= @End)
-                            OR (Start >= @Start AND End >= @End AND Start <= @End)
-                            OR (Start <= @Start AND End <= @End AND End >= @Start))  
-                """;
-
-            var overlappingBookings =
-                (await connexion.QueryAsync<Booking>(getOverlappingBooking, booking, transaction)).ToList();
-
-            if (overlappingBookings.Any())
-                return Results.BadRequest(new
-                {
-                    Message = "Cannot book room, because of overlapping bookings",
-                    Data = overlappingBookings
-                });
+            // var getOverlappingBooking =
+            //     """
+            //         SELECT * FROM Bookings 
+            //         WHERE RoomId = @RoomId
+            //         AND Date = @Date
+            //         AND ((Start <= @Start AND End >= @End) 
+            //                 OR (Start >= @Start AND End <= @End)
+            //                 OR (Start >= @Start AND End >= @End AND Start <= @End)
+            //                 OR (Start <= @Start AND End <= @End AND End >= @Start))  
+            //     """;
+            //
+            // var overlappingBookings =
+            //     (await connexion.QueryAsync<Booking>(getOverlappingBooking, booking, transaction)).ToList();
+            //
+            // if (overlappingBookings.Any())
+            //     return Results.BadRequest(new
+            //     {
+            //         Message = "Cannot book room, because of overlapping bookings",
+            //         Data = overlappingBookings
+            //     });
 
             var bookRoomForUser =
                 """
@@ -98,8 +97,6 @@ public static class BusinessLogic
             booking = booking with {Price = room.Price};
 
             await connexion.ExecuteAsync(bookRoomForUser, booking, transaction);
-
-            await Task.Delay(delay);
 
             var invoiceUser =
                 """
@@ -166,7 +163,7 @@ public static class BusinessLogic
                 actualArticle.Price
             }, transaction);
 
-            if(delay > TimeSpan.Zero)
+            if (delay > TimeSpan.Zero)
                 await Task.Delay(delay);
 
             var sellArticle =
@@ -176,7 +173,7 @@ public static class BusinessLogic
                     Where Id = @Id;
                 """;
 
-            await connexion.ExecuteAsync(sellArticle, new {actualArticle.Id, UserId = user.Id }, transaction);
+            await connexion.ExecuteAsync(sellArticle, new {actualArticle.Id, UserId = user.Id}, transaction);
 
             await transaction.CommitAsync();
 
@@ -190,29 +187,32 @@ public static class BusinessLogic
         }
     }
 
-    public static async Task<IResult> GetInventoryQuery(DbConnection connexion, DbTransaction transaction)
+    public static async Task<IResult> GetInventoryQuery(DbConnection connexion, DbTransaction transaction, ILogger<Program> logger)
     {
         var getBookigns =
             """
                 SELECT * FROM Bookings
             """;
 
-        var bookings = await connexion.QueryAsync<Booking>(getBookigns, transaction);
+        var bookings = (await connexion.QueryAsync<Booking>(getBookigns, transaction)).ToList();
 
         var getInvoices =
             """
                 SELECT * FROM Invoices 
             """;
 
-        var invoices = await connexion.QueryAsync<Invoice>(getInvoices, transaction);
+        var invoices = (await connexion.QueryAsync<Invoice>(getInvoices, transaction)).ToList();
 
         await transaction.CommitAsync();
+
+        var isValid = invoices.Sum(i => i.Amount) == bookings.Sum(i => i.Price);
 
 
         return Results.Ok(new
         {
             Invoices = invoices,
-            Bookings = bookings
+            Bookings = bookings,
+            IsValid = isValid
         });
     }
 }
