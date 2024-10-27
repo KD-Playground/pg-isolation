@@ -3,5 +3,6 @@
   <component name="SqlDialectMappings">
     <file url="file://$PROJECT_DIR$/RoomBooker/BusinessLogic.cs" dialect="SQLite" />
     <file url="file://$PROJECT_DIR$/RoomBooker/Endpoints.cs" dialect="SQLite" />
+    <file url="file://$PROJECT_DIR$/RoomBooker/V2Endpoints.cs" dialect="PostgreSQL" />
   </component>
 </project>

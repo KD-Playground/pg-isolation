@@ -6,11 +6,11 @@ namespace RoomBooker;
 
 public static class BusinessLogic
 {
-    public static async Task CreateUserCommand(User user, SqliteConnection connexion)
+    public static async Task CreateUserCommand(User user, DbConnection connexion)
     {
         var sql =
             """
-                INSERT INTO Users (Id, FullName) VALUES (@Id, @FullName);
+                INSERT INTO "Users" (Id, FullName) VALUES (@Id, @FullName);
             """;
 
         var completedUser = user with {Id = Guid.NewGuid().ToString()};
@@ -18,11 +18,11 @@ public static class BusinessLogic
         await connexion.ExecuteAsync(sql, completedUser);
     }
 
-    public static async Task CreateArticleCommand(Article article, SqliteConnection connexion)
+    public static async Task CreateArticleCommand(Article article, DbConnection connexion)
     {
         var sql =
             """
-                INSERT INTO Articles (Id, Price, Name) VALUES (@Id, @Price, @Name);
+                INSERT INTO "Articles" (Id, Price, Name) VALUES (@Id, @Price, @Name);
             """;
 
         var compltedArticle = article with {Id = Guid.NewGuid().ToString()};
@@ -34,7 +34,7 @@ public static class BusinessLogic
     {
         var sql =
             """
-                INSERT INTO Rooms (Id, Name) VALUES (@Id, @Name);
+                INSERT INTO "Rooms" (Id, Name) VALUES (@Id, @Name);
             """;
 
         var completedRoom = room with {Id = Guid.NewGuid().ToString()};
@@ -49,7 +49,7 @@ public static class BusinessLogic
         {
             var getRoom =
                 """
-                    SELECT * FROM Rooms Where Id = @Id LIMIT 1;
+                    SELECT * FROM "Rooms" Where Id = @Id LIMIT 1;
                 """;
             var room = await connexion.QueryFirstOrDefaultAsync<Room>(getRoom, new {Id = booking.RoomId},
                 transaction);
@@ -58,7 +58,7 @@ public static class BusinessLogic
 
             var getUser =
                 """
-                   SELECT * FROM Users Where Id = @Id LIMIT 1;
+                   SELECT * FROM "Users" Where Id = @Id LIMIT 1;
                 """;
 
             var user = await connexion.QueryFirstOrDefaultAsync<User>(getUser, new {Id = booking.UserId},
@@ -68,7 +68,7 @@ public static class BusinessLogic
 
             // var getOverlappingBooking =
             //     """
-            //         SELECT * FROM Bookings 
+            //         SELECT * FROM "Bookings" 
             //         WHERE RoomId = @RoomId
             //         AND Date = @Date
             //         AND ((Start <= @Start AND End >= @End) 
@@ -89,8 +89,8 @@ public static class BusinessLogic
 
             var bookRoomForUser =
                 """
-                    INSERT INTO Bookings 
-                    (RoomId, UserId, Date, Start, End, Price) 
+                    INSERT INTO "Bookings" 
+                    (RoomId, UserId, Date, Start, "End", Price) 
                     VALUES (@RoomId, @UserId, @Date, @Start, @End, @Price);
                 """;
 
@@ -100,7 +100,7 @@ public static class BusinessLogic
 
             var invoiceUser =
                 """
-                    INSERT INTO Invoices 
+                    INSERT INTO "Invoices" 
                     (Id, UserId, Amount) 
                     VALUES (@Id, @UserId, @Price);
                 """;
@@ -130,7 +130,7 @@ public static class BusinessLogic
         {
             var getArticle =
                 """
-                    SELECT * FROM Articles Where Id = @Id LIMIT 1;
+                    SELECT * FROM "Articles" Where Id = @Id LIMIT 1;
                 """;
             var actualArticle = await connexion.QueryFirstOrDefaultAsync<Article>(getArticle, new {Id = article.Id},
                 transaction);
@@ -140,7 +140,7 @@ public static class BusinessLogic
 
             var getUser =
                 """
-                   SELECT * FROM Users Where Id = @Id LIMIT 1;
+                   SELECT * FROM "Users" Where Id = @Id LIMIT 1;
                 """;
 
             var user = await connexion.QueryFirstOrDefaultAsync<User>(getUser, new {Id = article.UserId},
@@ -151,7 +151,7 @@ public static class BusinessLogic
 
             var invoiceUser =
                 """
-                    INSERT INTO Invoices 
+                    INSERT INTO "Invoices" 
                     (Id, UserId, Amount) 
                     VALUES (@Id, @UserId, @Price);
                 """;
@@ -168,7 +168,7 @@ public static class BusinessLogic
 
             var sellArticle =
                 """
-                    UPDATE Articles 
+                    UPDATE "Articles" 
                     Set UserId = @UserId
                     Where Id = @Id;
                 """;
@@ -191,14 +191,14 @@ public static class BusinessLogic
     {
         var getBookigns =
             """
-                SELECT * FROM Bookings
+                SELECT * FROM "Bookings"
             """;
 
         var bookings = (await connexion.QueryAsync<Booking>(getBookigns, transaction)).ToList();
 
         var getInvoices =
             """
-                SELECT * FROM Invoices 
+                SELECT * FROM "Invoices" 
             """;
 
         var invoices = (await connexion.QueryAsync<Invoice>(getInvoices, transaction)).ToList();
