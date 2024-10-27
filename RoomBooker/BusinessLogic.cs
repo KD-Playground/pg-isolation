@@ -187,7 +187,75 @@ public static class BusinessLogic
         }
     }
 
-    public static async Task<IResult> GetInventoryQuery(DbConnection connexion, DbTransaction transaction, ILogger<Program> logger)
+    public static async Task<IResult> SellArticleToUserWithPassed(Article article, DbConnection connexion,
+        DbTransaction transaction, TimeSpan delay)
+    {
+        try
+        {
+            var getArticle =
+                """
+                    SELECT * FROM "Articles" Where Id = @Id LIMIT 1;
+                """;
+            var actualArticle = await connexion.QueryFirstOrDefaultAsync<Article>(getArticle, new {Id = article.Id},
+                transaction);
+
+            if (actualArticle is null) throw new Exception("Article not found");
+
+            await Task.Delay(delay);
+
+            var getUser =
+                """
+                   SELECT * FROM "Users" Where Id = @Id LIMIT 1;
+                """;
+
+            var user = await connexion.QueryFirstOrDefaultAsync<User>(getUser, new {Id = article.UserId},
+                transaction);
+
+            if (user is null) throw new Exception("User not found");
+
+
+            var invoiceUser =
+                """
+                    INSERT INTO "Invoices" 
+                    (Id, UserId, Amount) 
+                    VALUES (@Id, @UserId, @Price);
+                """;
+
+            await connexion.ExecuteAsync(invoiceUser, new
+            {
+                Id = Guid.NewGuid().ToString(),
+                UserId = user.Id,
+                actualArticle.Price
+            }, transaction);
+
+            // if (delay > TimeSpan.Zero)
+            //     await Task.Delay(delay);
+
+            var sellArticle =
+                """
+                    UPDATE "Articles" 
+                    Set UserId = @UserId,
+                    Passed = @NewPassed
+                    Where Id = @Id;
+                """;
+
+            await connexion.ExecuteAsync(sellArticle,
+                new {actualArticle.Id, UserId = user.Id, NewPassed = actualArticle.Passed + 1}, transaction);
+
+            await transaction.CommitAsync();
+
+
+            return Results.Ok();
+        }
+        catch
+        {
+            await transaction.RollbackAsync();
+            throw;
+        }
+    }
+
+    public static async Task<IResult> GetInventoryQuery(DbConnection connexion, DbTransaction transaction,
+        ILogger<Program> logger)
     {
         var getBookigns =
             """

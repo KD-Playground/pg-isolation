@@ -6,7 +6,7 @@ namespace RoomBooker;
 
 public static class V2Endpoints
 {
-    private const IsolationLevel ISOLATION = IsolationLevel.Snapshot;
+    private const IsolationLevel ISOLATION = IsolationLevel.RepeatableRead;
 
     public static readonly Func<ILogger<Program>, Task> PgSqlMigrate = async (logger) =>
     {
@@ -60,6 +60,8 @@ public static class V2Endpoints
                
             DROP INDEX IF EXISTS idx_bookings_roomId_userId;
             CREATE INDEX IF NOT EXISTS idx_bookings_roomId_userId ON "Bookings" (RoomId, UserId);
+
+            ALTER TABLE "Articles" ADD COLUMN IF NOT EXISTS Passed INTEGER NOT NULL DEFAULT 0; 
             """;
 
         await connexion.ExecuteAsync(sql);
@@ -125,7 +127,7 @@ public static class V2Endpoints
 
 
             await using var transaction = connexion.BeginTransaction(ISOLATION);
-            return await BusinessLogic.SellArticleToUser(article, connexion, transaction, TimeSpan.FromSeconds(20));
+            return await BusinessLogic.SellArticleToUserWithPassed(article, connexion, transaction, TimeSpan.FromSeconds(20));
         };
     
     public static readonly Func<Article, ILogger<Program>, Task<IResult>> SellFastArticle =

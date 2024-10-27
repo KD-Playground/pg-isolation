@@ -113,5 +113,7 @@ public record Article
     
     public decimal Price { get; init; }
     public string Name { get; init; }
+    
+    public int Passed { get; init; }
 
 }
