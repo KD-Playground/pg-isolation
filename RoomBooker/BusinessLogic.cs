@@ -66,26 +66,28 @@ public static class BusinessLogic
 
             if (user is null) throw new Exception("User not found");
 
-            // var getOverlappingBooking =
-            //     """
-            //         SELECT * FROM "Bookings" 
-            //         WHERE RoomId = @RoomId
-            //         AND Date = @Date
-            //         AND ((Start <= @Start AND End >= @End) 
-            //                 OR (Start >= @Start AND End <= @End)
-            //                 OR (Start >= @Start AND End >= @End AND Start <= @End)
-            //                 OR (Start <= @Start AND End <= @End AND End >= @Start))  
-            //     """;
-            //
-            // var overlappingBookings =
-            //     (await connexion.QueryAsync<Booking>(getOverlappingBooking, booking, transaction)).ToList();
-            //
-            // if (overlappingBookings.Any())
-            //     return Results.BadRequest(new
-            //     {
-            //         Message = "Cannot book room, because of overlapping bookings",
-            //         Data = overlappingBookings
-            //     });
+            var getOverlappingBooking =
+                """
+                    SELECT * FROM "Bookings" 
+                    WHERE RoomId = @RoomId
+                    AND Date = @Date
+                    AND ((Start <= @Start AND "End" >= @End) 
+                            OR (Start >= @Start AND "End" <= @End)
+                            OR (Start >= @Start AND "End" >= @End AND Start <= @End)
+                            OR (Start <= @Start AND "End" <= @End AND "End" >= @Start))  
+                """;
+            
+            var overlappingBookings =
+                (await connexion.QueryAsync<Booking>(getOverlappingBooking, booking, transaction)).ToList();
+            
+            if (overlappingBookings.Any())
+                return Results.BadRequest(new
+                {
+                    Message = "Cannot book room, because of overlapping bookings",
+                    Data = overlappingBookings
+                });
+            
+            await Task.Delay(delay);
 
             var bookRoomForUser =
                 """

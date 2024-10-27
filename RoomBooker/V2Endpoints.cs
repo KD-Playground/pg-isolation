@@ -6,7 +6,7 @@ namespace RoomBooker;
 
 public static class V2Endpoints
 {
-    private const IsolationLevel ISOLATION = IsolationLevel.RepeatableRead;
+    private const IsolationLevel ISOLATION = IsolationLevel.Serializable;
 
     public static readonly Func<ILogger<Program>, Task> PgSqlMigrate = async (logger) =>
     {
@@ -104,7 +104,7 @@ public static class V2Endpoints
             await connexion.OpenAsync();
 
             await using var transaction = connexion.BeginTransaction(ISOLATION);
-            return await BusinessLogic.BookRoomCommand(connexion, booking, transaction, TimeSpan.FromSeconds(30));
+            return await BusinessLogic.BookRoomCommand(connexion, booking, transaction, TimeSpan.FromSeconds(10));
         };
     
     public static readonly Func<Booking, ILogger<Program>, Task<IResult>> BookRoomFast =
